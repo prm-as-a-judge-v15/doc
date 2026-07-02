@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PRM-as-a-Judge v1.5</title>
+  <meta name="description" content="PRM-as-a-Judge v1.5 user documentation: evaluate robot rollout videos from a manifest, generate progress curves, diagnostics, and reports.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="PRM-as-a-Judge home"><span class="brand-mark">PRM</span><span>PRM-as-a-Judge v1.5</span></a>
+      <div class="nav-links">
+        <a class="active" href="index.html">Home</a>
+        <a href="doc/index.html">User Guide</a>
+        <a href="https://arxiv.org/abs/2603.21669">Paper</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="home-main">
+    <section class="home-hero">
+      <div>
+        <p class="eyebrow">Dense Robotic Auditing</p>
+        <h1>Turn rollout videos into interpretable progress diagnostics with one command.</h1>
+        <p>PRM-as-a-Judge v1.5 starts from a JSONL manifest and works out of the box with release-ready defaults. Advanced users can tune Dopamine modes, multi-view inputs, goal images, multi-GPU execution, smoothing, and custom PRM backends.</p>
+        <div class="cta-row">
+          <a class="button primary" href="doc/index.html">Read the User Guide</a>
+          <a class="button" href="doc/index.html#quick-start">Quick Start</a>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="Progress curve illustration">
+        <div class="curve-card">
+          <div class="curve-head"><span>progress_processed</span><span>MaxP 0.93 / RBS 0.78</span></div>
+          <svg class="curve-plot" viewBox="0 0 640 360" role="img" aria-label="PRM progress curve illustration">
+            <defs>
+              <linearGradient id="curveFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#2d68c4" stop-opacity="0.26"/>
+                <stop offset="100%" stop-color="#2d68c4" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+            <rect width="640" height="360" fill="#fbfcff"/>
+            <g stroke="#dde5f0" stroke-width="1">
+              <line x1="62" y1="52" x2="62" y2="305"/>
+              <line x1="62" y1="305" x2="594" y2="305"/>
+              <line x1="62" y1="242" x2="594" y2="242"/>
+              <line x1="62" y1="179" x2="594" y2="179"/>
+              <line x1="62" y1="116" x2="594" y2="116"/>
+              <line x1="62" y1="53" x2="594" y2="53"/>
+            </g>
+            <path d="M62,292 C105,284 120,254 148,248 C181,241 187,278 216,266 C245,255 250,203 286,191 C318,180 337,210 365,188 C401,160 411,117 448,102 C485,86 500,119 530,94 C553,75 572,66 594,61 L594,305 L62,305 Z" fill="url(#curveFill)"/>
+            <path d="M62,292 C105,284 120,254 148,248 C181,241 187,278 216,266 C245,255 250,203 286,191 C318,180 337,210 365,188 C401,160 411,117 448,102 C485,86 500,119 530,94 C553,75 572,66 594,61" fill="none" stroke="#2d68c4" stroke-width="5" stroke-linecap="round"/>
+            <path d="M62,297 C119,276 155,247 203,261 C251,275 252,194 303,203 C353,212 374,158 427,127 C480,96 493,124 537,89 C560,72 579,67 594,58" fill="none" stroke="#cf5f28" stroke-width="3" stroke-dasharray="9 8" stroke-linecap="round" opacity="0.8"/>
+            <g fill="#6b7485" font-family="Inter, sans-serif" font-size="18">
+              <text x="22" y="58">1.0</text>
+              <text x="22" y="310">0.0</text>
+              <text x="288" y="340">rollout time</text>
+              <text x="78" y="82" fill="#2d68c4">processed</text>
+              <text x="78" y="112" fill="#cf5f28">raw</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-grid" aria-label="v1.5 features">
+      <div class="stat"><strong>JSONL</strong><span>Each line describes one case, including video paths, task text, labels, and metadata.</span></div>
+      <div class="stat"><strong>Ready Defaults</strong><span>Dopamine backward mode, frame interval 72, batch size 10, and GPU 0.</span></div>
+      <div class="stat"><strong>Multiple PRMs</strong><span>Dopamine, Robometer, and recorded curves share the same metric stack.</span></div>
+      <div class="stat"><strong>Diagnostics</strong><span>Report v1.5 trajectory metrics such as SQS, FNS, RBS, and OAS.</span></div>
+    </section>
+
+    <section class="home-section">
+      <h2>One-Command Evaluation</h2>
+      <div class="quick-command"><pre><code>MANIFEST=/path/to/cases.jsonl \
+PRM_PATH=/path/to/Robo-Dopamine-GRM-8B-Pro \
+bash eval/run_eval.sh</code></pre></div>
+    </section>
+
+    <section class="home-section">
+      <h2>Entry Points for Different Users</h2>
+      <div class="feature-grid">
+        <article class="feature"><h3>First-Time Users</h3><p>Prepare a manifest and run the default pipeline without moving videos into a fixed directory layout.</p></article>
+        <article class="feature"><h3>Batch Evaluation</h3><p>Use <code>GPUS=0,1,2,3</code> to shard cases across GPUs and merge shard outputs automatically.</p></article>
+        <article class="feature"><h3>New PRM Backends</h3><p>Subclass <code>BasePRMAdapter</code> and convert model outputs into absolute progress curves in <code>[0, 1]</code>.</p></article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
