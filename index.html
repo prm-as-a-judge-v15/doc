@@ -27,7 +27,6 @@
         <a href="#metrics">Metrics</a>
         <a href="#custom-prm">Custom PRM</a>
         <a href="#recipes">Recipes</a>
-        <a href="#troubleshooting">Troubleshooting</a>
       </nav>
     </aside>
 
@@ -41,10 +40,7 @@
           diagnostics, task summaries, and leaderboard-ready reports.
         </p>
         <p>
-          The default path is designed for first-time users: write a JSONL manifest,
-          run one command, and get evaluation results. When you need more control,
-          this guide explains how to tune sampling, modes, views, GPUs, smoothing,
-          metrics, and PRM backends.
+          With the default settings, users only need to provide a JSONL manifest and run one command to obtain evaluation results. For advanced requirements, this guide explains how to tune sampling, modes, views, GPUs, smoothing, metrics, and PRM backends.
         </p>
       </header>
 
@@ -61,10 +57,7 @@
           <pre><code>JSONL manifest -> PRM adapter -> normalized progress curve -> postprocess -> metrics/report</code></pre>
 
           <div class="callout">
-            Use the defaults when you simply want scores for a batch of rollouts.
-            Customize the later stages when you are comparing PRM models, using
-            multi-view videos, evaluating with goal images, or integrating a new
-            progress model.
+            The default settings provide a fast and simple path to evaluation results. You can adjust the later stages according to your task, data format, runtime resources, and analysis goals.
           </div>
 
           <div class="feature-grid compact-grid">
@@ -138,9 +131,7 @@ bash eval/run_eval.sh</code></pre>
         <section id="manifest">
           <h2>Manifest Format</h2>
           <p>
-            A manifest is a UTF-8 JSONL file. Each line describes one rollout case.
-            This replaces the older workflow that required users to move videos into
-            a fixed directory.
+            The recommended default input is a manifest file. It uses UTF-8 JSONL, with each line describing one rollout case. Directory-based video input is also supported.
           </p>
 
           <h3>Single View</h3>
@@ -436,11 +427,6 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
           <p>Use automatic selection when you want the runner to choose low-memory GPUs reported by <code>nvidia-smi</code>:</p>
           <pre><code>GPUS=auto MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
 
-          <div class="callout">
-            Multi-node evaluation is intentionally not part of the default workflow.
-            It can be added around the JSONL manifest by splitting cases across
-            machines, but the public quick start stays local to avoid extra setup.
-          </div>
         </section>
 
         <section id="progress-standard">
