@@ -19,6 +19,7 @@
         <a href="#manifest">Manifest Format</a>
         <a href="#outputs">Outputs</a>
         <a href="#defaults">Default Settings</a>
+        <a href="#choose-backend">Choose a Backend</a>
         <a href="#modes">Dopamine Modes</a>
         <a href="#multi-view">Views and Goals</a>
         <a href="#multi-gpu">Multi-GPU</a>
@@ -27,6 +28,7 @@
         <a href="#metrics">Metrics</a>
         <a href="#custom-prm">Custom PRM</a>
         <a href="#recipes">Recipes</a>
+        <a href="#troubleshooting">Troubleshooting</a>
       </nav>
     </aside>
 
@@ -40,7 +42,10 @@
           diagnostics, task summaries, and leaderboard-ready reports.
         </p>
         <p>
-          With the default settings, users only need to provide a JSONL manifest and run one command to obtain evaluation results. For advanced requirements, this guide explains how to tune sampling, modes, views, GPUs, smoothing, metrics, and PRM backends.
+          With the default settings, you only need to provide a JSONL manifest and
+          run one command to obtain evaluation results. For advanced requirements,
+          this guide explains how to tune sampling, modes, views, GPUs, smoothing,
+          metrics, and PRM backends.
         </p>
       </header>
 
@@ -57,7 +62,9 @@
           <pre><code>JSONL manifest -> PRM adapter -> normalized progress curve -> postprocess -> metrics/report</code></pre>
 
           <div class="callout">
-            The default settings provide a fast and simple path to evaluation results. You can adjust the later stages according to your task, data format, runtime resources, and analysis goals.
+            The default settings provide a fast and simple path to evaluation
+            results. You can adjust the later stages according to your task,
+            data format, runtime resources, and analysis goals.
           </div>
 
           <div class="feature-grid compact-grid">
@@ -78,7 +85,7 @@
 
         <section id="quick-start">
           <h2>Quick Start</h2>
-          <p>Install the toolkit from the project repository root:</p>
+          <p>From the project repository root, install the toolkit:</p>
           <pre><code>pip install -e .</code></pre>
 
           <h3>1. Create a manifest</h3>
@@ -126,12 +133,24 @@ MANIFEST=/path/to/cases.jsonl \
 ROBOMETER_SERVER_URL=http://localhost:8000 \
 ROBOMETER_AUTO_START=0 \
 bash eval/run_eval.sh</code></pre>
+
+          <div class="callout">
+            When <code>PRM=robometer</code>, <code>eval/run_eval.sh</code> uses
+            <code>ROBOMETER_PYTHON</code> for both the runner and the auto-started
+            server so video dependencies such as <code>decord</code> or
+            <code>opencv-python</code> are available. If you call
+            <code>prm-judge</code> directly, run it from an environment that can
+            decode your videos.
+          </div>
         </section>
 
         <section id="manifest">
           <h2>Manifest Format</h2>
           <p>
-            The recommended default input is a manifest file. It uses UTF-8 JSONL, with each line describing one rollout case. Directory-based video input is also supported.
+            The recommended default input is a manifest file. It uses UTF-8 JSONL,
+            with each line describing one rollout case. Paths may be absolute or
+            relative to the manifest file. UTF-8 files with or without a BOM are
+            accepted, so manifests created by Windows editors also work.
           </p>
 
           <h3>Single View</h3>
@@ -158,22 +177,22 @@ bash eval/run_eval.sh</code></pre>
               <tbody>
                 <tr>
                   <td><code>case_id</code></td>
-                  <td>Recommended</td>
-                  <td>Stable case identifier. If omitted, the loader should derive one from the row index or video name.</td>
+                  <td>Yes</td>
+                  <td>Stable case identifier. The loader raises an error if it is missing.</td>
                 </tr>
                 <tr>
                   <td><code>task</code></td>
                   <td>Yes</td>
-                  <td>Natural-language task description passed to the PRM backend.</td>
+                  <td>Natural-language task description passed to the PRM backend. <code>instruction</code> and <code>task_prompt</code> are accepted aliases.</td>
                 </tr>
                 <tr>
                   <td><code>video</code></td>
-                  <td>One of <code>video</code>, <code>videos</code>, or <code>progress</code></td>
+                  <td>One of <code>video</code> or <code>videos</code></td>
                   <td>Single rollout video path. The Dopamine adapter can reuse it for all camera slots.</td>
                 </tr>
                 <tr>
                   <td><code>videos</code></td>
-                  <td>One of <code>video</code>, <code>videos</code>, or <code>progress</code></td>
+                  <td>One of <code>video</code> or <code>videos</code></td>
                   <td>Object containing view-specific paths, usually <code>high</code>, <code>left</code>, and <code>right</code>.</td>
                 </tr>
                 <tr>
@@ -189,7 +208,7 @@ bash eval/run_eval.sh</code></pre>
                 <tr>
                   <td><code>label</code></td>
                   <td>No</td>
-                  <td><code>success</code> or <code>failure</code>. Use <code>--success-source label</code> when benchmark labels should define grouping.</td>
+                  <td><code>success</code> or <code>failure</code>. The label-based grouping also accepts common boolean aliases such as <code>true</code>, <code>false</code>, <code>1</code>, and <code>0</code>. Use <code>--success-source label</code> when benchmark labels should define grouping.</td>
                 </tr>
                 <tr>
                   <td><code>benchmark</code></td>
@@ -209,7 +228,7 @@ bash eval/run_eval.sh</code></pre>
                 <tr>
                   <td><code>progress</code> / <code>progress_path</code></td>
                   <td>No</td>
-                  <td>Precomputed progress curve for <code>--prm recorded</code>, debugging, or external PRM integration.</td>
+                  <td>Precomputed progress curve for <code>--prm recorded</code>, debugging, or external PRM integration. In the current manifest format, each row still includes <code>video</code> or <code>videos</code> as path fields, but the files can stay anywhere on disk.</td>
                 </tr>
               </tbody>
             </table>
@@ -229,8 +248,20 @@ bash eval/run_eval.sh</code></pre>
               </thead>
               <tbody>
                 <tr>
+                  <td><code>run_params.json</code></td>
+                  <td>Resolved CLI options and runtime settings for reproducibility.</td>
+                </tr>
+                <tr>
+                  <td><code>run_summary.json</code></td>
+                  <td>Total, successful, failed, and aggregated metric counts for the run.</td>
+                </tr>
+                <tr>
                   <td><code>per_case.jsonl</code></td>
                   <td>Raw and processed progress curves plus metrics for each rollout.</td>
+                </tr>
+                <tr>
+                  <td><code>benchmark/model/task/case/result_summary.json</code></td>
+                  <td>Per-case result file under the case output directory.</td>
                 </tr>
                 <tr>
                   <td><code>summary.csv</code></td>
@@ -249,8 +280,16 @@ bash eval/run_eval.sh</code></pre>
                   <td>Resolved input paths, runtime choices, and reproducibility metadata.</td>
                 </tr>
                 <tr>
+                  <td><code>robometer_server_PORT.log</code></td>
+                  <td>RoboMeter server log when auto-start is used.</td>
+                </tr>
+                <tr>
                   <td><code>visualizations/curve_metrics.csv</code></td>
                   <td>Per-case curve metrics when <code>--visualize</code> or <code>VISUALIZE=1</code> is enabled.</td>
+                </tr>
+                <tr>
+                  <td><code>visualizations/case_plots.csv</code></td>
+                  <td>Index of generated per-case figures.</td>
                 </tr>
                 <tr>
                   <td><code>visualizations/cases/*.png</code></td>
@@ -322,6 +361,49 @@ bash eval/run_eval.sh</code></pre>
           </div>
         </section>
 
+        <section id="choose-backend">
+          <h2>Choose a Backend</h2>
+          <p>
+            Start with the default unless you already know your evaluation needs a
+            different progress model. After a backend produces a progress curve, the
+            postprocessing and metric pipeline are shared.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Use case</th>
+                  <th>Recommended backend</th>
+                  <th>Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>First run or ordinary batch evaluation</td>
+                  <td><code>dopamine</code> with <code>EVAL_MODE=backward</code></td>
+                  <td>Stable default, simple one-command path, and works with either one view or three views.</td>
+                </tr>
+                <tr>
+                  <td>Repeated or context-dependent motion</td>
+                  <td><code>robometer</code></td>
+                  <td>Sequence-style judging can use longer temporal context than local pair comparison.</td>
+                </tr>
+                <tr>
+                  <td>Debugging metrics without loading a model</td>
+                  <td><code>recorded</code></td>
+                  <td>Uses <code>progress</code> or <code>progress_path</code> from the manifest.</td>
+                </tr>
+                <tr>
+                  <td>Your own PRM or reward model</td>
+                  <td>Custom adapter</td>
+                  <td>Return absolute progress in <code>[0, 1]</code>, or configure normalization before metrics.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section id="modes">
           <h2>Dopamine Modes</h2>
           <p>
@@ -359,9 +441,9 @@ bash eval/run_eval.sh</code></pre>
           </div>
 
           <p>Examples:</p>
-          <pre><code>MODE=backward MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh
-MODE=forward MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh
-MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
+          <pre><code>EVAL_MODE=backward MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh
+EVAL_MODE=forward MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh
+EVAL_MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
 
           <div class="callout">
             Pair-style judging can struggle with repeated or context-dependent motions
@@ -396,7 +478,11 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
 
           <p>
             For RoboMeter, the current HTTP adapter evaluates one selected view from
-            the manifest. With multi-view input it uses <code>high</code> by default.
+            the manifest. With multi-view input it uses <code>cam_high</code> by
+            default. You may pass aliases such as <code>left</code> and
+            <code>right</code>, or canonical names such as
+            <code>cam_left_wrist</code>. If you request a non-default view and that
+            view is missing, the case fails instead of silently using another camera.
           </p>
           <pre><code>PRM=robometer ROBOMETER_VIEW=left MANIFEST=cases.jsonl bash eval/run_eval.sh</code></pre>
 
@@ -424,9 +510,25 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
             local data parallelism and is usually enough for evaluation batches.
           </p>
 
-          <p>Use automatic selection when you want the runner to choose low-memory GPUs reported by <code>nvidia-smi</code>:</p>
+          <p>
+            Use automatic selection when you want the runner to choose low-memory GPUs
+            reported by <code>nvidia-smi</code>. The current selector keeps GPUs with
+            less than 1024 MiB used memory and falls back to GPU 0 if none are found.
+          </p>
           <pre><code>GPUS=auto MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
 
+          <div class="callout">
+            Multi-node evaluation is intentionally not part of the default workflow.
+            It can be added around the JSONL manifest by splitting cases across
+            machines, but the public quick start stays local to avoid extra setup.
+          </div>
+
+          <p>
+            For RoboMeter multi-GPU runs, each shard uses
+            <code>ROBOMETER_SERVER_PORT + shard_index</code> for an auto-started
+            server, so choose a free base port when running several evaluations on
+            the same machine.
+          </p>
         </section>
 
         <section id="progress-standard">
@@ -480,7 +582,7 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
           <ol>
             <li>Normalize the PRM output to absolute progress in <code>[0, 1]</code>.</li>
             <li>Clip values to <code>[0, 1]</code>.</li>
-            <li>Replace isolated local outliers with the local median.</li>
+            <li>Replace isolated local outliers with the local median. The default threshold is <code>0.35</code>.</li>
             <li>Smooth with a weighted temporal window.</li>
           </ol>
 
@@ -569,16 +671,19 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
           <h3>Group-Level v1.5 Metrics</h3>
           <ul>
             <li><code>MaxP-F</code>: average <code>MaxP</code> among failed trajectories.</li>
-            <li><code>SQS</code>: success quality score for successful trajectories.</li>
-            <li><code>FNS</code>: failure near-success score.</li>
-            <li><code>RBS</code>: mean robustness after the largest drawdown.</li>
-            <li><code>OAS</code>: overall auditing score combining success, near-success, and robustness signals.</li>
+            <li><code>SQS</code>: success quality score for successful trajectories, using <code>0.5 * PPL + 0.3 * (1 - CRA) + 0.2 * (1 - Stag)</code>.</li>
+            <li><code>FNS</code>: failure near-success score for failed trajectories, using <code>0.5 * MaxP + 0.3 * M75 + 0.2 * M50</code>.</li>
+            <li><code>RBS</code>: mean robustness after the largest drawdown. Some project materials call the same idea <code>DRR</code>.</li>
+            <li><code>OAS</code>: overall auditing score, <code>0.3 * SQS + 0.2 * FNS + 0.2 * RBS + 0.3 * SR</code>, averaged over trajectories.</li>
           </ul>
 
           <div class="callout">
             Some diagnostics are conditional. For example, <code>CRA</code> is most
             informative when comparing rollouts that both achieved similar progress.
             A completely stagnant curve may have low regret but still be a poor rollout.
+            By default, success grouping uses <code>MaxP >= --success-threshold</code>;
+            use <code>--success-source label</code> only when benchmark labels should
+            define success and failure.
           </div>
         </section>
 
@@ -594,9 +699,9 @@ MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/prm ba
           <ul>
             <li>Read <code>EvalCase</code> fields such as videos, task text, goal image, and metadata.</li>
             <li>Run your PRM and return a progress sequence aligned to sampled frames or video time.</li>
-            <li>Declare whether the output is absolute progress, step-wise deltas, or another score.</li>
-            <li>Declare whether the scale is <code>[0, 1]</code>, <code>[0, 100]</code>, or uncalibrated.</li>
-            <li>Convert to absolute progress in <code>[0, 1]</code> before metrics.</li>
+            <li>Decide whether the output is absolute progress, step-wise deltas, or another score.</li>
+            <li>Decide whether the scale is <code>[0, 1]</code>, <code>[0, 100]</code>, or uncalibrated.</li>
+            <li>Prefer returning absolute progress in <code>[0, 1]</code>. If not, pass the matching <code>--normalize</code> and <code>--source-type</code> options for the whole run.</li>
           </ul>
 
           <pre><code>from prm_judge.prm.base import BasePRMAdapter
@@ -626,6 +731,13 @@ class MyAdapter(BasePRMAdapter):
             a longer sequence, it is a useful comparison point for repeated-motion
             cases where local pairwise judging is not enough.
           </p>
+          <p>
+            When you reuse an existing RoboMeter server, PRM-as-a-Judge checks
+            <code>/model_info</code> and requires the server model path to match
+            <code>PRM_PATH</code>. This helps avoid accidentally evaluating with an
+            old checkpoint. The adapter uploads frame arrays as <code>.npy</code>
+            multipart files, which keeps long-video requests manageable.
+          </p>
         </section>
 
         <section id="recipes">
@@ -634,7 +746,7 @@ class MyAdapter(BasePRMAdapter):
           <h3>Batch evaluate many videos without moving files</h3>
           <pre><code>MANIFEST=/data/my_rollouts/cases.jsonl \
 PRM_PATH=/models/Robo-Dopamine-GRM-8B-Pro \
-OUT_DIR=eval/results/my_rollouts \
+OUTPUT_ROOT=eval/results/my_rollouts \
 bash eval/run_eval.sh</code></pre>
 
           <h3>Use all four local GPUs</h3>
@@ -645,6 +757,9 @@ bash eval/run_eval.sh</code></pre>
 
           <h3>Use benchmark labels for success grouping</h3>
           <pre><code>prm-judge eval --manifest cases.jsonl --success-source label --visualize</code></pre>
+
+          <h3>Check a manifest before spending GPU time</h3>
+          <pre><code>prm-judge eval --manifest cases.jsonl --prm recorded --dry-run --limit 10</code></pre>
 
           <h3>Compare raw and processed progress</h3>
           <pre><code>prm-judge eval --manifest cases.jsonl --outlier-method none --smoothing none --visualize
