@@ -28,7 +28,6 @@
         <a href="#metrics">Metrics</a>
         <a href="#custom-prm">Custom PRM</a>
         <a href="#recipes">Recipes</a>
-        <a href="#troubleshooting">Troubleshooting</a>
       </nav>
     </aside>
 
@@ -149,8 +148,7 @@ bash eval/run_eval.sh</code></pre>
           <p>
             The recommended default input is a manifest file. It uses UTF-8 JSONL,
             with each line describing one rollout case. Paths may be absolute or
-            relative to the manifest file. UTF-8 files with or without a BOM are
-            accepted, so manifests created by Windows editors also work.
+            relative to the manifest file. 
           </p>
 
           <h3>Single View</h3>
@@ -516,12 +514,6 @@ EVAL_MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/p
             less than 1024 MiB used memory and falls back to GPU 0 if none are found.
           </p>
           <pre><code>GPUS=auto MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
-
-          <div class="callout">
-            Multi-node evaluation is intentionally not part of the default workflow.
-            It can be added around the JSONL manifest by splitting cases across
-            machines, but the public quick start stays local to avoid extra setup.
-          </div>
 
           <p>
             For RoboMeter multi-GPU runs, each shard uses
