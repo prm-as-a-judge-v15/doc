@@ -168,64 +168,64 @@ bash eval/run_eval.sh</code></pre>
               <thead>
                 <tr>
                   <th>Field</th>
-                  <th>Required</th>
+                  <th>Requirement</th>
                   <th>Description</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><code>case_id</code></td>
-                  <td>Yes</td>
+                  <td>&#9679; Required</td>
                   <td>Stable case identifier. The loader raises an error if it is missing.</td>
                 </tr>
                 <tr>
                   <td><code>task</code></td>
-                  <td>Yes</td>
+                  <td>&#9679; Required</td>
                   <td>Natural-language task description passed to the PRM backend. <code>instruction</code> and <code>task_prompt</code> are accepted aliases.</td>
                 </tr>
                 <tr>
                   <td><code>video</code></td>
-                  <td>One of <code>video</code> or <code>videos</code></td>
+                  <td>&#9679; Required: choose one of <code>video</code> or <code>videos</code></td>
                   <td>Single rollout video path. The Dopamine adapter can reuse it for all camera slots.</td>
                 </tr>
                 <tr>
                   <td><code>videos</code></td>
-                  <td>One of <code>video</code> or <code>videos</code></td>
+                  <td>&#9679; Required: choose one of <code>video</code> or <code>videos</code></td>
                   <td>Object containing view-specific paths, usually <code>high</code>, <code>left</code>, and <code>right</code>.</td>
                 </tr>
                 <tr>
                   <td><code>task_name</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Short grouping key used for filtering, output paths, summaries, and leaderboard rows. Falls back to <code>task</code>.</td>
                 </tr>
                 <tr>
                   <td><code>goal_image</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Image of the desired final state. Useful when the task text is ambiguous or the target layout matters.</td>
                 </tr>
                 <tr>
                   <td><code>label</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td><code>success</code> or <code>failure</code>. The label-based grouping also accepts common boolean aliases such as <code>true</code>, <code>false</code>, <code>1</code>, and <code>0</code>. Use <code>--success-source label</code> when benchmark labels should define grouping.</td>
                 </tr>
                 <tr>
                   <td><code>benchmark</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Dataset or benchmark name copied into reports.</td>
                 </tr>
                 <tr>
                   <td><code>model</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Policy, robot model, or method name used for leaderboard aggregation.</td>
                 </tr>
                 <tr>
                   <td><code>metadata</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Free-form JSON object copied into outputs for reproducibility.</td>
                 </tr>
                 <tr>
                   <td><code>progress</code> / <code>progress_path</code></td>
-                  <td>No</td>
+                  <td>&#9675; Optional</td>
                   <td>Precomputed progress curve for <code>--prm recorded</code>, debugging, or external PRM integration. In the current manifest format, each row still includes <code>video</code> or <code>videos</code> as path fields, but the files can stay anywhere on disk.</td>
                 </tr>
               </tbody>
@@ -362,9 +362,7 @@ bash eval/run_eval.sh</code></pre>
         <section id="choose-backend">
           <h2>Choose a Backend</h2>
           <p>
-            Start with the default unless you already know your evaluation needs a
-            different progress model. After a backend produces a progress curve, the
-            postprocessing and metric pipeline are shared.
+            The toolkit can evaluate rollouts with different PRM backends. The default Dopamine backend is ready for a first run, and you can switch to RoboMeter, recorded curves, or your own PRM when your task needs a different progress estimator. After a backend produces a progress curve, the postprocessing and metric pipeline are shared.
           </p>
 
           <div class="table-wrap">
@@ -395,7 +393,7 @@ bash eval/run_eval.sh</code></pre>
                 <tr>
                   <td>Your own PRM or reward model</td>
                   <td>Custom adapter</td>
-                  <td>Return absolute progress in <code>[0, 1]</code>, or configure normalization before metrics.</td>
+                  <td>Return absolute progress in <code>[0, 1]</code>, or configure normalization before metrics. See <a href="#custom-prm">Custom PRM</a> for the adapter steps.</td>
                 </tr>
               </tbody>
             </table>
@@ -408,31 +406,39 @@ bash eval/run_eval.sh</code></pre>
             Robo-Dopamine is a pair-style PRM. It constructs a progress curve by
             scoring sampled states with one of three comparison modes.
           </p>
+          <p>
+            The descriptions below follow the current Dopamine inference
+            implementation in <code>eval/examples/inference.py</code>.
+          </p>
 
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Mode</th>
-                  <th>Best for</th>
-                  <th>Notes</th>
+                  <th>What is compared</th>
+                  <th>How progress is interpreted</th>
+                  <th>When to use</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><code>backward</code></td>
-                  <td>Default full-trajectory auditing with a clear goal state.</td>
-                  <td>Usually the most stable first choice because each sampled state is compared against the goal anchor.</td>
+                  <td>Goal image as <code>before</code>, current sampled state as <code>after</code>.</td>
+                  <td>The model score is converted to progress with <code>progress = 1 + score</code>.</td>
+                  <td>Default v1.5 mode. Use it when a goal image or goal placeholder is available.</td>
                 </tr>
                 <tr>
                   <td><code>forward</code></td>
-                  <td>Tasks where start-to-current progress is easier to judge than distance-to-goal.</td>
-                  <td>Useful when the final state is visually ambiguous or the goal image is unavailable.</td>
+                  <td>Start frame as <code>before</code>, current sampled state as <code>after</code>.</td>
+                  <td>The model score is treated as the current absolute progress estimate.</td>
+                  <td>Use it when start-to-current change is easier to judge than distance to the goal image.</td>
                 </tr>
                 <tr>
                   <td><code>incremental</code></td>
-                  <td>Local motion analysis and detecting small step-wise changes.</td>
-                  <td>More sensitive to noise and repeated motion; use with care and consider a larger frame interval.</td>
+                  <td>Previous sampled state as <code>before</code>, current sampled state as <code>after</code>.</td>
+                  <td>The model score is treated as a local progress change and accumulated over time.</td>
+                  <td>Use it for local step-wise change analysis. Consider a larger <code>FRAME_INTERVAL</code> if adjacent samples are too similar.</td>
                 </tr>
               </tbody>
             </table>
@@ -509,9 +515,10 @@ EVAL_MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/p
           </p>
 
           <p>
-            Use automatic selection when you want the runner to choose low-memory GPUs
-            reported by <code>nvidia-smi</code>. The current selector keeps GPUs with
-            less than 1024 MiB used memory and falls back to GPU 0 if none are found.
+            You can also ask the runner to choose GPUs automatically. In the current
+            implementation, <code>GPUS=auto</code> queries <code>nvidia-smi</code>,
+            selects devices whose used memory is below 1024 MiB, and falls back to
+            GPU 0 if no such device is found. 
           </p>
           <pre><code>GPUS=auto MANIFEST=cases.jsonl PRM_PATH=/path/to/prm bash eval/run_eval.sh</code></pre>
 
@@ -661,13 +668,51 @@ EVAL_MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/p
           </div>
 
           <h3>Group-Level v1.5 Metrics</h3>
-          <ul>
-            <li><code>MaxP-F</code>: average <code>MaxP</code> among failed trajectories.</li>
-            <li><code>SQS</code>: success quality score for successful trajectories, using <code>0.5 * PPL + 0.3 * (1 - CRA) + 0.2 * (1 - Stag)</code>.</li>
-            <li><code>FNS</code>: failure near-success score for failed trajectories, using <code>0.5 * MaxP + 0.3 * M75 + 0.2 * M50</code>.</li>
-            <li><code>RBS</code>: mean robustness after the largest drawdown. Some project materials call the same idea <code>DRR</code>.</li>
-            <li><code>OAS</code>: overall auditing score, <code>0.3 * SQS + 0.2 * FNS + 0.2 * RBS + 0.3 * SR</code>, averaged over trajectories.</li>
-          </ul>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Applies to</th>
+                  <th>What it tells you</th>
+                  <th>Formula used by default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>MaxP-F</code></td>
+                  <td>Failed trajectories</td>
+                  <td>How far failed rollouts got before failing.</td>
+                  <td>Mean <code>MaxP</code> over trajectories with <code>SR_trace = 0</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>FNS</code></td>
+                  <td>Failed trajectories</td>
+                  <td>Near-success quality of failed rollouts, combining best reached progress and milestone crossings.</td>
+                  <td><code>0.5 * MaxP + 0.3 * M75 + 0.2 * M50</code>; successful trajectories contribute <code>0</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>SQS</code></td>
+                  <td>Successful trajectories</td>
+                  <td>Execution quality among successes, rewarding efficient, low-regret, low-stagnation curves.</td>
+                  <td><code>0.5 * PPL + 0.3 * (1 - CRA) + 0.2 * (1 - Stag)</code>; failed trajectories contribute <code>0</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>RBS</code></td>
+                  <td>All trajectories</td>
+                  <td>Robustness after the largest drawdown. Some project materials call the same idea <code>DRR</code>.</td>
+                  <td>Mean trajectory <code>min(1, (Rec + epsilon) / (MDD + epsilon))</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>OAS</code></td>
+                  <td>All trajectories</td>
+                  <td>Overall auditing score combining success, failed-case progress, recovery, and success quality.</td>
+                  <td><code>0.3 * SQS_trace + 0.2 * FNS_trace + 0.2 * RBS_trace + 0.3 * SR_trace</code>, averaged over trajectories.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
 
           <div class="callout">
             Some diagnostics are conditional. For example, <code>CRA</code> is most
@@ -679,13 +724,22 @@ EVAL_MODE=incremental FRAME_INTERVAL=96 MANIFEST=cases.jsonl PRM_PATH=/path/to/p
           </div>
         </section>
 
-        <section id="custom-prm">
+       <section id="custom-prm">
           <h2>Custom PRM</h2>
           <p>
             The toolkit separates two responsibilities: a PRM adapter produces a
             progress curve, and the metric stack computes diagnostics from the
             standardized curve. This makes it possible to use PRMs beyond Dopamine.
           </p>
+
+          <h3>Minimal integration steps</h3>
+          <ol>
+            <li>Create a new adapter file under <code>eval/prm_judge/prm/</code> and subclass <code>BasePRMAdapter</code>.</li>
+            <li>Implement <code>predict(case, output_dir)</code> so it reads the manifest case, runs your PRM, and returns a <code>ProgressTrace</code>.</li>
+            <li>Register the backend name in <code>eval/prm_judge/cli.py</code>: add it to the <code>--prm</code> choices and create the adapter in <code>build_adapter</code>.</li>
+            <li>Make sure the returned progress is absolute <code>[0, 1]</code>, or run with the matching <code>--normalize</code> and <code>--source-type</code> options.</li>
+            <li>Evaluate with <code>prm-judge eval --prm your_backend --manifest cases.jsonl</code>.</li>
+          </ol>
 
           <h3>Adapter checklist</h3>
           <ul>
@@ -710,9 +764,11 @@ class MyAdapter(BasePRMAdapter):
         )</code></pre>
 
           <p>
-            Register the backend in <code>eval/prm_judge/cli.py</code> and document
-            the model's output scale, semantics, required views, goal-image behavior,
-            and runtime requirements.
+            Existing adapters under <code>eval/prm_judge/prm/</code> can be used as
+            templates. <code>recorded.py</code> is the smallest example, while
+            <code>robometer.py</code> shows how to wrap an external model service.
+            Document the model's output scale, semantics, required views,
+            goal-image behavior, and runtime requirements next to your adapter.
           </p>
 
           <h3>RoboMeter as an example</h3>
@@ -731,7 +787,7 @@ class MyAdapter(BasePRMAdapter):
             multipart files, which keeps long-video requests manageable.
           </p>
         </section>
-
+        
         <section id="recipes">
           <h2>Recipes</h2>
 
